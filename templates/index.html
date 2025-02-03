@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload CSV File</title>
+</head>
+<body>
+    <h1>Upload a CSV File</h1>
+
+    <!--  Correct Button Placement -->
+    <a href="{{ url_for('download_template') }}" download>
+        <button> Download Template CSV </button>
+    </a>
+
+    <!-- Form to upload the CSV file -->
+    <form method="POST" enctype="multipart/form-data">
+        <label for="file">Choose a CSV file:</label>
+        <input type="file" name="file" id="file" accept=".csv" required>
+        <button type="submit">Upload</button>
+    </form>
+
+    <!-- Display the uploaded CSV content -->
+    {% if tables %}
+        <h2>Contents of the CSV File: {{ filename }}</h2>
+        <div>
+            {{ tables|safe }}
+        </div>
+    {% endif %}
+</body>
+</html>

@@ -16,12 +16,13 @@ TEMPLATE_FILE = 'template.csv'  # Your template file name
 OUTPUT_FOLDER = 'output'
 TEMPLATES_FOLDER = 'templates'
 FONT_PATH = 'arial.TTF'
+FONT_PATH_BOLD = 'ARIALBD.TTF'
 
 # Clear folders before creating them
-for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER]:
-    if os.path.exists(folder):
-        shutil.rmtree(folder)  # Remove all files and subdirectories
-    os.makedirs(folder, exist_ok=True)  # Recreate empty folder
+# for folder in [UPLOAD_FOLDER, OUTPUT_FOLDER]:
+#     if os.path.exists(folder):
+#         shutil.rmtree(folder)  # Remove all files and subdirectories
+#     os.makedirs(folder, exist_ok=True)  # Recreate empty folder
 
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -103,27 +104,65 @@ def generate_certificate(name, rank, college):
     font_large = ImageFont.truetype(FONT_PATH, 80)
     font_small = ImageFont.truetype(FONT_PATH, 50)
 
-    # Construct text
-    if rank.lower() == 'participation':
-        text = f"This certificate is awarded to {name} from {college} for participation in {static_var['event']}."
-    else:
-        text = f"This certificate is awarded to {name} from {college} for achieving {rank} rank in {static_var['event']}."
-    
-    # **Wrap text to fit within 1600px width**
-    max_width = 1600  # Maximum width allowed for text
-    wrapped_text = []
-    for line in wrap(text, width=60):  # Adjust width as needed
-        while draw.textbbox((0, 0), line, font=font_small)[2] > max_width:
-            line = line.rsplit(' ', 1)[0]  # Remove last word if too long
-        wrapped_text.append(line)
+    font_bold = ImageFont.truetype(FONT_PATH_BOLD, 50)
 
-    # **Center and draw text line by line**
-    y_position = 600  # Start position
-    for line in wrapped_text:
-        text_width = draw.textbbox((0, 0), line, font=font_small)[2]
-        text_x = 1000 - (text_width // 2)  # Center at 1000px
-        draw.text((text_x, y_position), line, fill="black", font=font_small)
-        y_position += 60  # Move down for next line
+
+    if rank.lower() == 'participation':
+        text_parts = [
+            "This certificate is awarded to ", (name, True),
+            " from ", (college, True),
+            " for participation in ", (static_var['event'], True), "."
+        ]
+    else:
+        text_parts = [
+            "This certificate is awarded to ", (name, True),
+            " from ", (college, True),
+            " for achieving ", (rank, True),
+            " rank in ", (static_var['event'], True), "."
+        ]
+
+    # **Wrap text to fit within 1600px width**
+   # **Wrap text while keeping bold formatting**
+    max_width = 1600  
+    wrapped_lines = []
+    current_line = []
+    current_width = 0
+
+    for part in text_parts:
+        word, is_bold = part if isinstance(part, tuple) else (part, False)
+        font = font_bold if is_bold else font_small
+        word_width = draw.textbbox((0, 0), word, font=font)[2]
+
+        # If adding the word exceeds max width, start a new line
+        if current_width + word_width > max_width:
+            wrapped_lines.append(current_line)
+            current_line = []
+            current_width = 0
+
+        current_line.append((word, is_bold))
+        current_width += word_width
+
+    if current_line:
+        wrapped_lines.append(current_line)
+
+    # **Center and draw wrapped text**
+    y_position = 600  
+    for line_parts in wrapped_lines:
+        text_width = sum(draw.textbbox((0, 0), word, font=(font_bold if is_bold else font_small))[2] for word, is_bold in line_parts)
+        text_x = 1000 - (text_width // 2)  # Center align
+
+        x_cursor = text_x
+        for word, is_bold in line_parts:
+            font = font_bold if is_bold else font_small
+            draw.text((x_cursor, y_position), word, fill="black", font=font)
+            x_cursor += draw.textbbox((0, 0), word, font=font)[2]  # Move cursor forward
+
+        y_position += 60  # Move down for the next line
+
+
+
+
+
 
     # Load signatures & resize
     sign1 = Image.open(static_var['sign1']).convert("RGBA").resize((100, 80))
